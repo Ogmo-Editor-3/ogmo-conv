@@ -8,11 +8,11 @@ using StringTools;
 class LevelConverter extends Converter {
 	public function new() { }
 
-	public function convert(levelPath:Path, data: ProjectData) {
+	public function convert(levelPath:String, data: ProjectData) {
 		// Read and parse XML
 		var rawContent: String = "";
 		try {
-			rawContent = File.getContent(levelPath.toString());
+			rawContent = File.getContent(levelPath);
 		}
 		catch(e) {
 			trace("ERROR: Could not open project file " + levelPath + "!");
@@ -40,7 +40,12 @@ class LevelConverter extends Converter {
 
 		// We're done!
 		json += "}\n";
-		trace(json);
+
+		// Let's save the level to disk...
+		var filename = Path.withoutExtension(Path.withoutDirectory(levelPath));
+		var newPath = Path.addTrailingSlash(Path.directory(levelPath)) + filename + ".json";
+		File.saveContent(newPath, json);
+		trace("Saved " + newPath);
 	}
 
 	private function getLayersArray(root:Access, data:ProjectData): String {

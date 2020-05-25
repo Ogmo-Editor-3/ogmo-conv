@@ -1,3 +1,4 @@
+import sys.FileSystem;
 import ProjectData.LayerData;
 import ProjectData.EntityData;
 import ProjectData.ValueData;
@@ -14,11 +15,11 @@ class ProjectConverter extends Converter {
 		projectData = new ProjectData();
 	}
 
-	public function convert(projectPath: Path, rootDirectory: Path) {
+	public function convert(projectPath: String, rootDirectory: String) {
 		// Read and parse XML
 		var rawContent: String = "";
 		try {
-			rawContent = File.getContent(projectPath.toString());
+			rawContent = File.getContent(projectPath);
 		}
 		catch(e) {
 			trace("ERROR: Could not open project file " + projectPath + "!");
@@ -36,7 +37,8 @@ class ProjectConverter extends Converter {
 		json = assignString(json, "ogmoVersion", "3.3.0");
 
 		// Level paths
-		var path = (rootDirectory == null || rootDirectory.toString() == "") ? "." : rootDirectory.toString();
+		var sanitizedRootDirectory = FileSystem.absolutePath(rootDirectory);
+		var path = (rootDirectory == null || rootDirectory == "") ? "." : sanitizedRootDirectory;
 		json = assign(json, "levelPaths", "[\"" + path + "\"]");
 
 		// Settings
@@ -97,7 +99,12 @@ class ProjectConverter extends Converter {
 
 		// We're done!
 		json += "}\n";
-		trace(json);
+
+		// Let's save the project to disk...
+		var filename = Path.withoutExtension(Path.withoutDirectory(projectPath));
+		var newPath = Path.addTrailingSlash(Path.directory(projectPath)) + filename + ".ogmo";
+		File.saveContent(newPath, json);
+		trace("Saved " + newPath);
 	}
 
 	private function defToString(attrib: String): String {

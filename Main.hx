@@ -1,24 +1,27 @@
+import sys.FileSystem;
+import sys.io.File;
 import haxe.io.Path;
 
 class Main {
+	static var numLevelsConverted:Int = 0;
+
 	static public function main():Void {
 		var args = Sys.args();
 		if (args.length == 0 || args[0] == "--help") {
-			trace("Usage: ogmo-conv.py [-p projectFile] [-l levelFile] [-r rootLevelDirectory] [-o outDirectory]");
+			trace("Usage: ogmo-conv.py [-p projectFile] [-l levelFile] [-r rootLevelDirectory]");
 			Sys.exit(0);
 		}
 
 		var projectFile: String = "";
 		var levelFiles: Array<String> = new Array<String>();
 		var rootDirectory: String = "";
-		var outDirectory: String = "";
 
 		// Process arguments
 		var flagType = "";
 		for (arg in args) {
 
 			// Read flags
-			if (arg == "-p" || arg == "-l" || arg == "-r" || arg == "-o") {
+			if (arg == "-p" || arg == "-l" || arg == "-r") {
 				flagType = arg;
 				continue;
 			}
@@ -37,13 +40,6 @@ class Main {
 			else if (flagType == "-r") {
 				rootDirectory = arg;
 			}
-			else if (flagType == "-o") {
-				if (outDirectory != "") {
-					trace("ERROR: Only one output directory can be specified at a time!");
-					Sys.exit(1);
-				}
-				outDirectory = arg;
-			}
 			else {
 				trace("ERROR: Unknown argument or flag '" + arg + "'.");
 				Sys.exit(1);
@@ -60,26 +56,43 @@ class Main {
 
 		// Convert the project file
 		var projectConverter = new ProjectConverter();
-		projectConverter.convert(
-			new Path(projectFile),
-			new Path(rootDirectory)
-		);
+		projectConverter.convert(projectFile, rootDirectory);
 
 		// Convert any levels specified
 		var levelConverter = new LevelConverter();
-		var numLevelsConverted = 0;
 		for (level in levelFiles) {
-			levelConverter.convert(
-				new Path(level),
-				projectConverter.projectData
-			);
+			levelConverter.convert(level, projectConverter.projectData);
 			numLevelsConverted++;
 		}
 
-		// Convert the directory recursively
-		// TODO
+		// Convert all levels in the root directory and its subdirectories
+		if (rootDirectory != "") {
+			convertDirectoryRecursive(
+				projectConverter,
+				levelConverter,
+				rootDirectory
+			);
+		}
 
 		// Display a "done!" message
 		trace("Finished! Converted " + numLevelsConverted + " levels!");
+	}
+
+	private static function convertDirectoryRecursive(
+		projConv:ProjectConverter,
+		levelConv:LevelConverter,
+		rootDirectory:String
+	) {
+		var paths = FileSystem.readDirectory(rootDirectory);
+		for (path in paths) {
+			var fullPath = Path.addTrailingSlash(rootDirectory) + path;
+			if (Path.extension(fullPath) == "oel") {
+				levelConv.convert(fullPath, projConv.projectData);
+				numLevelsConverted++;
+			}
+			else if (FileSystem.isDirectory(fullPath)) {
+				convertDirectoryRecursive(projConv, levelConv, fullPath);
+			}
+		}
 	}
 }
