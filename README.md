@@ -20,8 +20,10 @@ The logic is written in Haxe but compiles to a Python 3 script for convenient us
 What works:
 * Command line interface
 * Project (.oep) conversion
+* Level (.oel) conversion
 
 What doesn't work:
-* Automatically saving converted projects to disk
-* Converting levels
+* Automatically saving converted projects/levels to disk
+* Tilemap layers using export modes other than CSV
+* Grid layers using export modes other than Bitstring
 * Probably other stuff
