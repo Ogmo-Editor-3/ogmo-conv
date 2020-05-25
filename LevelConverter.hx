@@ -28,8 +28,8 @@ class LevelConverter extends Converter {
 		json = assignString(json, "ogmoVersion", "3.3.0");
 		json = assignAny(json, "width", Std.parseInt(xml.att.width));
 		json = assignAny(json, "height", Std.parseInt(xml.att.height));
-		json = assignAny(json, "offsetX", 0); // FIXME: Is this right?
-		json = assignAny(json, "offsetY", 0); // FIXME: Is this right?
+		json = assignAny(json, "offsetX", 0);
+		json = assignAny(json, "offsetY", 0);
 
 		// Layers
 		json = assign(json, "layers", getLayersArray(xml, data));
@@ -233,6 +233,39 @@ class LevelConverter extends Converter {
 					data.entities[e.name].originY
 				);
 
+				// Optional attributes
+				if (e.has.width) {
+					entitiesStr = assignAny(
+						entitiesStr,
+						"width",
+						Std.parseInt(e.att.width)
+					);
+				}
+				if (e.has.height) {
+					entitiesStr = assignAny(
+						entitiesStr,
+						"height",
+						Std.parseInt(e.att.height)
+					);
+				}
+				if (e.has.angle) {
+					entitiesStr = assignAny(
+						entitiesStr,
+						"rotation",
+						Std.parseFloat(e.att.angle)
+					);
+				}
+
+				// Nodes, if needed
+				if (e.elements.hasNext()) {
+					entitiesStr = assign(
+						entitiesStr,
+						"nodes",
+						getNodeArray(e)
+					);
+				}
+
+				// Values, if needed
 				if (data.entities[e.name].values != null) {
 					entitiesStr = assign(
 						entitiesStr,
@@ -293,8 +326,30 @@ class LevelConverter extends Converter {
 		return str;
 	}
 
-	private function formatColorValueStr(colstr:String) {
+	private function formatColorValueStr(colstr:String): String {
 		// OE2 color values are completely opaque
 		return colstr.toLowerCase() + "ff";
+	}
+
+	private function getNodeArray(xml:Access): String {
+		var str = "[\n";
+		indent++;
+		for (n in xml.elements) {
+			for (i in 0...indent) {
+				str += "  ";
+			}
+			str += "{\"x\": " + n.att.x + ", \"y\": " + n.att.y + "},\n";
+		}
+		indent--;
+
+		// Strip trailing comma
+		str = str.substring(0, str.length - 2);
+		str += "\n";
+
+		for (i in 0...indent) {
+			str += "  ";
+		}
+		str += "]";
+		return str;
 	}
 }
