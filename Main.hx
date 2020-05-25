@@ -59,14 +59,22 @@ class Main {
 		}
 
 		// Convert the project file
-		var projectData = ProjectConverter.convert(new Path(projectFile), new Path(rootDirectory));
+		var projectConverter = new ProjectConverter();
+		projectConverter.convert(
+			new Path(projectFile),
+			new Path(rootDirectory)
+		);
 
 		// Convert any levels specified
+		var levelConverter = new LevelConverter();
 		var numLevelsConverted = 0;
-		// for (level in levelFiles) {
-		// 	LevelConverter.convert(new Path(level), projectData);
-		// 	numLevelsConverted++;
-		// }
+		for (level in levelFiles) {
+			levelConverter.convert(
+				new Path(level),
+				projectConverter.projectData
+			);
+			numLevelsConverted++;
+		}
 
 		// Convert the directory recursively
 		// TODO

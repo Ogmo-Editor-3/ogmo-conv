@@ -1,13 +1,20 @@
+import ProjectData.LayerData;
+import ProjectData.EntityData;
+import ProjectData.ValueData;
 import haxe.Exception;
 import haxe.io.Path;
 import sys.io.File;
 import haxe.xml.Access;
 using StringTools;
 
-class ProjectConverter {
-	private static var indent = 0;
+class ProjectConverter extends Converter {
+	public var projectData: ProjectData;
 
-	public static function convert(projectPath: Path, rootDirectory: Path): ProjectData {
+	public function new() {
+		projectData = new ProjectData();
+	}
+
+	public function convert(projectPath: Path, rootDirectory: Path) {
 		// Read and parse XML
 		var rawContent: String = "";
 		try {
@@ -60,7 +67,11 @@ class ProjectConverter {
 		);
 
 		// Level values
-		json = assign(json, "levelValues", getValuesArray(xml.node.LevelValueDefinitions));
+		json = assign(
+			json,
+			"levelValues",
+			getValuesArray(xml.node.LevelValueDefinitions)
+		);
 
 		// More metadata!
 		json = assignString(json, "defaultExportMode", ".json");
@@ -87,56 +98,9 @@ class ProjectConverter {
 		// We're done!
 		json += "}\n";
 		trace(json);
-
-		// TODO: Return struct containing only relevant bits for level files
-		return null;
 	}
 
-	private static function assignString(json:String, name:String, val:String): String {
-		for (i in 0...indent) {
-			json += "  ";
-		}
-		json += "\"" + name + "\": \"" + val + "\",\n";
-		return json;
-	}
-
-	private static function assignAny(json:String, name:String, val:Any): String {
-		for (i in 0...indent) {
-			json += "  ";
-		}
-		json += "\"" + name + "\": " + val + ",\n";
-		return json;
-	}
-
-	private static function assignSize(json:String, name:String, x:Int, y:Int): String {
-		for (i in 0...indent) {
-			json += "  ";
-		}
-		json += "\"" + name + "\": {\"x\": " + x + ", \"y\": " + y + "},\n";
-		return json;
-	}
-
-	private static function assign(json:String, name:String, val:String): String {
-		for (i in 0...indent) {
-			json += "  ";
-		}
-		json += "\"" + name + "\": " + val + ",\n";
-		return json;
-	}
-
-	private static function colorToString(colorNode: Access): String {
-		var r = Std.parseInt(colorNode.att.R);
-		var g = Std.parseInt(colorNode.att.G);
-		var b = Std.parseInt(colorNode.att.B);
-		var a = Std.parseInt(colorNode.att.A);
-		var str = "#" + StringTools.hex(r, 2) +
-				StringTools.hex(g, 2) +
-				StringTools.hex(b, 2) +
-				StringTools.hex(a, 2);
-		return str.toLowerCase();
-	}
-
-	private static function defToString(attrib: String): String {
+	private function defToString(attrib: String): String {
 		switch (attrib) {
 			case "IntValueDefinition":
 				return "Integer";
@@ -162,7 +126,7 @@ class ProjectConverter {
 		throw new Exception("Unknown layer definition: " + attrib);
 	}
 
-	private static function drawModeToInt(mode:String): Int {
+	private function drawModeToInt(mode:String): Int {
 		switch (mode) {
 			case "Path":
 				return 0;
@@ -177,7 +141,7 @@ class ProjectConverter {
 		throw new Exception("Unknown draw mode: " + mode);
 	}
 
-	private static function getShapeString(): String {
+	private function getShapeString(): String {
 		var str = "{\n";
 		indent++;
 		str = assignString(str, "label", "Rectangle");
@@ -194,9 +158,18 @@ class ProjectConverter {
 		return str;
 	}
 
-	private static function getValuesArray(root:Access): String {
+	private function getValuesArray(root:Access, entityName:String = ""): String {
 		var valuesStr = "[]";
 		if (root.elements.hasNext()) {
+			// Create the project data value array
+			if (entityName != "") {
+				projectData.entities[entityName].values = new Array<ValueData>();
+			}
+			else {
+				projectData.values = new Array<ValueData>();
+			}
+
+			// Start writing the array
 			valuesStr = "[\n";
 			for (e in root.elements) {
 				indent++;
@@ -332,6 +305,18 @@ class ProjectConverter {
 					);
 				}
 
+				// Add the value to the values array
+				if (entityName != "") {
+					projectData.entities[entityName].values.push(
+						new ValueData(e.att.xsitype, e.att.Name)
+					);
+				}
+				else {
+					projectData.values.push(
+						new ValueData(e.att.xsitype, e.att.Name)
+					);
+				}
+
 				// Strip trailing comma
 				valuesStr = valuesStr.substring(0, valuesStr.length - 2);
 				valuesStr += "\n";
@@ -356,7 +341,7 @@ class ProjectConverter {
 		return valuesStr;
 	}
 
-	private static function getLayersArray(root:Access): String {
+	private function getLayersArray(root:Access): String {
 		var layerStr = "[]";
 		if (root.elements.hasNext()) {
 			var eid = 0;
@@ -367,32 +352,25 @@ class ProjectConverter {
 					layerStr += "  ";
 				}
 				layerStr += "{\n";
-				indent ++;
+				indent++;
+
+				var name = e.node.Name.innerData;
+				var xsitype = e.att.xsitype;
+				var eid = Std.string(eid++);
+				var w = Std.parseInt(e.node.Grid.node.Width.innerData);
+				var h = Std.parseInt(e.node.Grid.node.Height.innerData);
 
 				layerStr = assignString(
 					layerStr,
 					"definition",
-					defToString(e.att.xsitype)
+					defToString(xsitype)
 				);
-				layerStr = assignString(
-					layerStr,
-					"name",
-					e.node.Name.innerData
-				);
-				layerStr = assignSize(
-					layerStr,
-					"gridSize",
-					Std.parseInt(e.node.Grid.node.Width.innerData),
-					Std.parseInt(e.node.Grid.node.Height.innerData)
-				);
-				layerStr = assignString(
-					layerStr,
-					"exportID",
-					Std.string(eid++)
-				);
+				layerStr = assignString(layerStr, "name", name);
+				layerStr = assignSize(layerStr, "gridSize", w, h);
+				layerStr = assignString(layerStr, "exportID", eid);
 
 				// Definition-specific members
-				if (e.att.xsitype == "GridLayerDefinition") {
+				if (xsitype == "GridLayerDefinition") {
 					layerStr = assignAny(
 						layerStr,
 						"arrayMode",
@@ -404,7 +382,7 @@ class ProjectConverter {
 						"{\"0\": \"#00000000\", \"1\": \"" + colorToString(e.node.Color) + "\"}"
 					);
 				}
-				else if (e.att.xsitype == "TileLayerDefinition") {
+				else if (xsitype == "TileLayerDefinition") {
 					layerStr = assignAny(
 						layerStr,
 						"exportMode",
@@ -421,7 +399,7 @@ class ProjectConverter {
 						""
 					);
 				}
-				else if (e.att.xsitype == "EntityLayerDefinition") {
+				else if (xsitype == "EntityLayerDefinition") {
 					layerStr = assign(
 						layerStr,
 						"requiredTags",
@@ -433,6 +411,9 @@ class ProjectConverter {
 						"[]"
 					);
 				}
+
+				// Add the layer to the map
+				projectData.layers[name] = new LayerData(xsitype, eid, w, h);
 
 				// Strip trailing comma
 				layerStr = layerStr.substring(0, layerStr.length - 2);
@@ -458,7 +439,7 @@ class ProjectConverter {
 		return layerStr;
 	}
 
-	private static function getTilesetsArray(root: Access): String {
+	private function getTilesetsArray(root: Access): String {
 		var tilesetStr = "[]";
 		if (root.elements.hasNext()) {
 			tilesetStr = "[\n";
@@ -530,24 +511,38 @@ class ProjectConverter {
 		return tilesetStr;
 	}
 
-	private static function getEntitiesArray(root: Access): String {
+	private function getEntitiesArray(root: Access): String {
 		var entitiesStr = "[]";
 		if (root.elements.hasNext()) {
 			var eid = 0;
 			entitiesStr = "[\n";
 			for (e in root.elements) {
-				entitiesStr += "    {\n";
-				indent += 2;
+				indent++;
+				for (i in 0...indent) {
+					entitiesStr += "  ";
+				}
+				entitiesStr += "{\n";
+				indent++;
 
+				var name = e.att.Name;
+				var eid = Std.string(eid++);
+				var originX = Std.parseInt(e.node.Origin.node.X.innerData);
+				var originY = Std.parseInt(e.node.Origin.node.Y.innerData);
+				var values:Array<ValueData> = null;
+
+				// Add the entity to the map
+				projectData.entities[name] = new EntityData(eid, originX, originY, values);
+
+				// Start writing the object members
 				entitiesStr = assignString(
 					entitiesStr,
 					"exportID",
-					Std.string(eid++)
+					eid
 				);
 				entitiesStr = assignString(
 					entitiesStr,
 					"name",
-					e.att.Name
+					name
 				);
 				entitiesStr = assignAny(
 					entitiesStr,
@@ -563,8 +558,8 @@ class ProjectConverter {
 				entitiesStr = assignSize(
 					entitiesStr,
 					"origin",
-					Std.parseInt(e.node.Origin.node.X.innerData),
-					Std.parseInt(e.node.Origin.node.Y.innerData)
+					originX,
+					originY
 				);
 				entitiesStr = assignAny(
 					entitiesStr,
@@ -660,7 +655,7 @@ class ProjectConverter {
 				entitiesStr = assign(
 					entitiesStr,
 					"values",
-					getValuesArray(e.node.ValueDefinitions)
+					getValuesArray(e.node.ValueDefinitions, name)
 				);
 
 				if (e.node.ImageDefinition.att.DrawMode == "Image") {
