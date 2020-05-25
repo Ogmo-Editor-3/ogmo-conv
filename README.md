@@ -24,6 +24,7 @@ What works:
 
 What doesn't work:
 * Automatically saving converted projects/levels to disk
+* Directory-recursive conversion
 * Tilemap layers using export modes other than CSV
 * Grid layers using export modes other than Bitstring
 * Probably other stuff
