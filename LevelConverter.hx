@@ -206,7 +206,7 @@ class LevelConverter extends Converter {
 
 				if (data.entities[e.name] == null) {
 					throw new Exception(
-						"Level data contains reference to an entity named'" + e.name +
+						"Level data contains reference to an entity named '" + e.name +
 						"' which was not found in the project file. "
 					);
 				}
