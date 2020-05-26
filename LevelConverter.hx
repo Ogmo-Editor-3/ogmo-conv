@@ -307,15 +307,13 @@ class LevelConverter extends Converter {
 		var str = "{";
 		for (v in values) {
 			str += "\"" + v.name + "\": ";
-			if (	v.definition == "IntValueDefinition"  ||
-				v.definition == "BoolValueDefinition" ||
-				v.definition == "FloatValueDefinition"
-			) {
+			if (v.definition == "IntValueDefinition" || v.definition == "FloatValueDefinition") {
 				str += xml.att.resolve(v.name);
 			}
-			else if (v.definition == "StringValueDefinition" ||
-				 v.definition == "EnumValueDefinition"
-			) {
+			else if (v.definition == "BoolValueDefinition") {
+				str += (xml.att.resolve(v.name) == "True");
+			}
+			else if (v.definition == "StringValueDefinition" || v.definition == "EnumValueDefinition") {
 				str += "\"" + xml.att.resolve(v.name) + "\"";
 			}
 			else if (v.definition == "ColorValueDefinition") {
