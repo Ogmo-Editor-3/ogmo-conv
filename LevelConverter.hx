@@ -20,6 +20,8 @@ class LevelConverter extends Converter {
 		}
 		var xml = new Access(Xml.parse(rawContent).firstElement());
 
+		trace("Converting " + levelPath);
+
 		// Here we go!
 		var json = "{\n";
 		indent++;
@@ -202,6 +204,13 @@ class LevelConverter extends Converter {
 				entitiesStr += "{\n";
 				indent++;
 
+				if (data.entities[e.name] == null) {
+					throw new Exception(
+						"Level data contains reference to an entity named'" + e.name +
+						"' which was not found in the project file. "
+					);
+				}
+
 				entitiesStr = assignString(
 					entitiesStr,
 					"name",
@@ -306,6 +315,12 @@ class LevelConverter extends Converter {
 	private function getValuesArray(xml:Access, values:Array<ValueData>) {
 		var str = "{";
 		for (v in values) {
+			if (!xml.has.resolve(v.name)) {
+				throw new Exception(
+					"No value '" + v.name + "' was found in the level data on element '" + xml.name +"'. " +
+					"Most likely this means there were changes made to the Ogmo project since this level was last saved."
+				);
+			}
 			str += "\"" + v.name + "\": ";
 			if (v.definition == "IntValueDefinition" || v.definition == "FloatValueDefinition") {
 				str += xml.att.resolve(v.name);
