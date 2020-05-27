@@ -205,10 +205,11 @@ class LevelConverter extends Converter {
 				indent++;
 
 				if (data.entities[e.name] == null) {
-					throw new Exception(
-						"Level data contains reference to an entity named '" + e.name +
-						"' which was not found in the project file. "
+					trace(
+						"WARNING: Level data contains reference to an entity named '" +
+						e.name + "' which was not found in the project file. "
 					);
+					continue;
 				}
 
 				entitiesStr = assignString(
@@ -316,10 +317,12 @@ class LevelConverter extends Converter {
 		var str = "{";
 		for (v in values) {
 			if (!xml.has.resolve(v.name)) {
-				throw new Exception(
-					"No value '" + v.name + "' was found in the level data on element '" + xml.name +"'. " +
+				trace(
+					"WARNING: No value '" + v.name +
+					"' was found in the level data on element '" + xml.name + "'. " +
 					"Most likely this means there were changes made to the Ogmo project since this level was last saved."
 				);
+				continue;
 			}
 			str += "\"" + v.name + "\": ";
 			if (v.definition == "IntValueDefinition" || v.definition == "FloatValueDefinition") {
