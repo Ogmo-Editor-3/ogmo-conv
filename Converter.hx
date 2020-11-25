@@ -1,9 +1,9 @@
 import haxe.xml.Access;
 
 class Converter {
-        private var indent = 0;
+	private var indent = 0;
 
-        private function assignString(json:String, name:String, val:String): String {
+	private function assignString(json:String, name:String, val:String): String {
 		for (i in 0...indent) {
 			json += "  ";
 		}

@@ -9,6 +9,9 @@ class LevelConverter extends Converter {
 	public function new() { }
 
 	public function convert(levelPath:String, data: ProjectData) {
+		// Reset the indentation
+		this.indent = 0;
+
 		// Read and parse XML
 		var rawContent: String = "";
 		try {
